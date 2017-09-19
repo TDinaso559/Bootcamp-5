@@ -72,20 +72,47 @@ angular.module('listings').controller('ListingsController', ['$scope', '$locatio
                 $scope.error = 'Unable to save listing!\n' + error;
               });
     };
-
-    $scope.update = function(isValid) {
       /*
         Fill in this function that should update a listing if the form is valid. Once the update has 
         successfully finished, navigate back to the 'listing.list' state using $state.go(). If an error 
         occurs, pass it to $scope.error. 
        */
-    };
+    $scope.update = function(isValid) {
+      var ID = $stateParams.listingID;
+      if(!isValid){
+        $scope.$broadcast('show-errors-check-validity', 'articleForm');
+        return false;
+      }     
 
-    $scope.remove = function() {
+      //create listing object
+      var listing = {
+        name :$scope.listing.name,
+        code: $scope.listing.code,
+        address: $scope.listing.address
+      };
+
+      Listings.update(ID, listing)
+        //if object successfully save, go back to list page, if not display the error
+        .then(function(response){
+          $state.go('listing.list'. {successMessage: 'Listing updated'});
+        }, function(error){
+          $scope.error = 'Unable to update listing\n' + error;
+        });
+
+    };
       /*
         Implement the remove function. If the removal is successful, navigate back to 'listing.list'. Otherwise, 
         display the error. 
        */
+    $scope.remove = function() {
+      var ID = $stateParams.listingID;
+
+      Listings.delete(ID)
+        .then(function(response){
+          $state.go('listings.list', {successMessage: 'Listing removed'});
+        }, function(error){
+          $scope.error = 'Unable to remove listing\n' + error;
+        });
     };
 
     /* Bind the success message to the scope if it exists as part of the current state */
@@ -101,5 +128,38 @@ angular.module('listings').controller('ListingsController', ['$scope', '$locatio
       }, 
       zoom: 14
     }
+
+    // Set marker values
+    var marker = [];
+    Listings.getAll().then(function(response) {
+      var listings = response.data;
+
+      listings.forEach( (listing, i) => {
+        if(listing.coordinates) {
+          var x = {
+            latitude: listing.coordinates.latitude,
+            longitude: listing.coordinates.longitude,
+            title: {
+              code: listing.code,
+              name: listing.name,
+              address: listing.address
+            },
+            id: i,
+            show: false
+          }
+
+          marker.push(x);
+        }
+      });      
+    });
+
+    $scope.marker = marker;
+
+    // Show fields of markers when clicked on
+    $scope.clickMarker = function(marker, eventName, model) {
+        console.log("Clicked!");
+        model.show = !model.show;
+    };
+
   }
 ]);
